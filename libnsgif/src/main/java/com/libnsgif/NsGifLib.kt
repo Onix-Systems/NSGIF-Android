@@ -85,19 +85,19 @@ class NsGifLib private constructor() {
     external fun getGifHeight(id: Int): Int
 
     @Synchronized
-    external fun getGifCurrentFrame(id: Int): Int
+    private external fun getGifCurrentFrame(id: Int): Int
 
     @Synchronized
-    external fun getGifResult(id: Int): Int
+    private external fun getGifResult(id: Int): Int
 
     @Synchronized
-    external fun getGifFrameCount(id: Int): Int
+    private external fun getGifFrameCount(id: Int): Int
 
     @Synchronized
     private external fun getGifImageExist(dest: IntArray, id: Int): Int
 
     @Synchronized
-    private external fun setGifFrame(frame: Int, id: Int): Int
+    external fun setGifFrame(frame: Int, id: Int): Int
 
     @Synchronized
     external fun getGifFrameTime(frame: Int, id: Int): Int

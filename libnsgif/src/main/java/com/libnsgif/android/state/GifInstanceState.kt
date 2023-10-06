@@ -1,4 +1,4 @@
-package com.onix.libnsgif.demo
+package com.libnsgif.android.state
 
 import android.os.Parcel
 import android.os.Parcelable

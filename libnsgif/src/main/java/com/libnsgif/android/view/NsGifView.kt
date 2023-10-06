@@ -1,17 +1,19 @@
-package com.onix.libnsgif.demo
+package com.libnsgif.android.view
 
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
-import android.graphics.Matrix.ScaleToFit
 import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.View
-import com.libnsgif.NsGifLib
+import com.libnsgif.android.NsGifAndroid
+import com.libnsgif.android.builder.GifOptionsBuilder
+import com.libnsgif.android.builder.RestoreStrategy
+import com.libnsgif.android.state.GifInstanceState
 import com.libnsgif.entity.NsGifInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,15 +23,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
-class GifView @JvmOverloads constructor(
+class NsGifView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+    defStyleAttr: Int = 0,
 ) : View(context, attrs, defStyleAttr) {
 
-    private var restoreFrame: Boolean = false
-
-    private val gifLib = NsGifLib.getInstance()
+    private val gifLib = NsGifAndroid.getInstance()
     private val scope = CoroutineScope(SupervisorJob())
     private var animJob: Job? = null
     private var preloadJob: Job? = null
@@ -40,7 +40,8 @@ class GifView @JvmOverloads constructor(
 
     private var currentFrame = 0
     private var startOffset = 0
-    private var scaleType = ScaleToFit.CENTER
+    private var scaleType = Matrix.ScaleToFit.CENTER
+    private var restoreStrategy = RestoreStrategy.IGNORE
     private var drawMatrix = Matrix()
     private val paint = Paint()
     private val bitmapRect = RectF()
@@ -93,23 +94,22 @@ class GifView @JvmOverloads constructor(
     }
 
     private fun calculateHeight(): Int {
-        return bitmap?.height ?: 0
+        return getBitmap()?.height ?: 0
     }
 
     private fun calculateWidth(): Int {
-        return bitmap?.width ?: 0
+        return getBitmap()?.width ?: 0
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        animationStop()
         resetGif()
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (restoreFrame) {
-            setupAnimation()
-        } else {
+        if (gifSet()) {
             animationStart()
         }
     }
@@ -124,32 +124,27 @@ class GifView @JvmOverloads constructor(
     override fun onRestoreInstanceState(state: Parcelable?) {
         if (state is GifInstanceState) {
             super.onRestoreInstanceState(state.superState)
-            startOffset = state.getLastFrame()
-            invalidate()
+//            for future releases
+//            if (restoreStrategy == RestoreStrategy.LAST_FRAME) {
+//                startOffset = state.getLastFrame()
+//                invalidate()
+//            }
         } else {
             super.onRestoreInstanceState(state)
         }
+    }
+
+    fun setRestoreStrategy(strategy: RestoreStrategy) {
+        restoreStrategy = strategy
     }
 
     fun setStartOffset(offset: Int) {
         startOffset = offset
     }
 
-    fun setScaleType(scale: ScaleToFit) {
+    fun setScaleType(scale: Matrix.ScaleToFit) {
         scaleType = scale
         invalidate()
-    }
-
-    /**
-     * Set if gif should resume playing from last position,
-     * after it was removed and added by Android lifecycle
-     *
-     * important: enabling this param will impact performance
-     *
-     * param: restore - to enable or disable restoring
-     */
-    fun setRestoreFrames(restore: Boolean) {
-        restoreFrame = restore
     }
 
     fun setGif(name: String): Boolean {
@@ -161,14 +156,14 @@ class GifView @JvmOverloads constructor(
 
     fun setGif(asset: AssetManager, name: String): Boolean {
         resetGif()
-//        id = gifLib.setGif(asset, name)
+        id = gifLib.setGif(asset, name)
         setupAnimation()
         return gifLib.isValid()
     }
 
     fun setGif(resource: Context, id: Int): Boolean {
         resetGif()
-//        this.id = gifLib.setGif(resource, id)
+        this.id = gifLib.setGif(resource, id)
         setupAnimation()
         return gifLib.isValid()
     }
@@ -182,7 +177,7 @@ class GifView @JvmOverloads constructor(
 
     fun setGif(stream: ByteArrayOutputStream): Boolean {
         resetGif()
-//        id = gifLib.setGif(stream)
+        id = gifLib.setGif(stream.toByteArray())
         setupAnimation()
         return gifLib.isValid()
     }
@@ -192,12 +187,13 @@ class GifView @JvmOverloads constructor(
     private fun withStartOffset() {
         if (startOffset > 0) {
             preloadJob = scope.launch(Dispatchers.IO) {
-//                setBitmap(gifLib.getPixels(frame = 0, id = id))
+                setBitmap(gifLib.getGifFrameBitmap(id = id))
 
                 getBitmap()?.let { bitmap ->
                     repeat(startOffset) {
-//                        gifLib.getPixels(frame = it + 1, id = id, bitmap = bitmap)
+                        gifLib.setGifFrame(it + 1, id)
                     }
+                    gifLib.getGifFrame(bitmap = bitmap, id = id)
                     currentFrame = startOffset
                 }
             }
@@ -205,16 +201,17 @@ class GifView @JvmOverloads constructor(
     }
 
     private fun resetGif() {
-        if (id != -1) {
+        if (gifSet()) {
             animationStop()
             destroyGif()
             gifInfo = NsGifInfo()
             currentFrame = 0
+            id = -1
         }
     }
 
     private fun setupAnimation() {
-        if (id != -1) {
+        if (gifSet()) {
             gifInfo = gifLib.getGifInfo(id)
             if (currentFrame != startOffset) {
                 withStartOffset()
@@ -233,18 +230,12 @@ class GifView @JvmOverloads constructor(
         }
 
         animJob = scope.launch(Dispatchers.Main.immediate) {
+            preloadJob?.join()
             /* debounce delay between canceling and starting job */
             delay(5)
-            preloadJob?.join()
-            while (animJob?.isActive != false) {
-                val bitmap = getBitmap()
-                if (bitmap == null) {
-//                    setBitmap(gifLib.getPixels(frame = currentFrame, id = id))
-                } else {
-                    increaseFrame()
-//                    gifLib.copyPixels(bitmap, currentFrame, id)
-                }
-                postInvalidate()
+            while (animJob?.isActive == true) {
+                processBitmap()
+
                 val timeFrame: Int = gifInfo.delayMap[currentFrame] ?: -1
                 if (timeFrame >= 0) {
                     delay(timeFrame.toLong())
@@ -255,16 +246,29 @@ class GifView @JvmOverloads constructor(
         }
     }
 
+    private fun processBitmap() {
+        val bitmap = getBitmap()
+        if (bitmap == null) {
+            setBitmap(gifLib.getGifFrameBitmap(id = id))
+        } else {
+            increaseFrame()
+            gifLib.getGifFrame(bitmap, id)
+        }
+        postInvalidate()
+    }
+
     private fun increaseFrame() {
         currentFrame++
         if (currentFrame >= gifInfo.frames) {
             currentFrame = 0
         }
+        gifLib.setGifFrame(currentFrame, id)
     }
 
     private fun animationStop() {
-        if (id != -1) {
+        if (gifSet()) {
             animJob?.cancel()
+            preloadJob?.cancel()
             getBitmap()?.recycle()
             setBitmap(null)
         }
@@ -283,4 +287,6 @@ class GifView @JvmOverloads constructor(
             }
         }
     }
+
+    private fun gifSet() = (id != -1)
 }

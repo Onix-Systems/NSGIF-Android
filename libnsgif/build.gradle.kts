@@ -51,7 +51,8 @@ android {
 }
 
 dependencies {
-
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
 }
 
 afterEvaluate {
@@ -62,7 +63,7 @@ afterEvaluate {
 
                 groupId = "com.systems-onix.android"
                 artifactId = "nsgif-library"
-                version = "0.0.2"
+                version = "0.0.3"
             }
         }
     }

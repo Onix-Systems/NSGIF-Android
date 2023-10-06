@@ -1,26 +1,19 @@
-package com.onix.libnsgif.demo
+package com.libnsgif.android.builder
 
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.Matrix
+import com.libnsgif.android.view.NsGifView
 import java.io.ByteArrayOutputStream
 
-class GifOptionsBuilder(private val view: GifView) {
-    private var restoreFrame: Boolean = false
-    private var startOffset = 0
-    private var scaleType = Matrix.ScaleToFit.CENTER
-    private var gif: GifData = GifData.Default
+class GifOptionsBuilder(private val view: NsGifView) {
+    private var startOffset: Int? = null
+    private var scaleType: Matrix.ScaleToFit? = null
+    private var gifData: GifData = GifData.Default
+    private var restoreStrategy: RestoreStrategy? = null
 
-    /**
-     * Set if gif should resume playing from last position,
-     * after it was removed and added by Android lifecycle
-     *
-     * important: enabling this param will impact performance
-     *
-     * param: restore - to enable or disable restoring
-     */
-    fun withRestoreFrame(restore: Boolean): GifOptionsBuilder {
-        restoreFrame = restore
+    fun withRestoreStrategy(strategy: RestoreStrategy): GifOptionsBuilder {
+        restoreStrategy = strategy
         return this
     }
 
@@ -35,41 +28,41 @@ class GifOptionsBuilder(private val view: GifView) {
     }
 
     fun withGif(name: String): GifOptionsBuilder {
-        gif = GifData.File(name)
+        gifData = GifData.File(name)
         return this
     }
 
     fun withGif(asset: AssetManager, name: String): GifOptionsBuilder {
-        gif = GifData.Asset(asset, name)
+        gifData = GifData.Asset(asset, name)
         return this
     }
 
     fun withGif(context: Context, id: Int): GifOptionsBuilder {
-        gif = GifData.Resource(context, id)
+        gifData = GifData.Resource(context, id)
         return this
     }
 
     fun withGif(data: ByteArray): GifOptionsBuilder {
-        gif = GifData.ByteArray(data)
+        gifData = GifData.ByteArray(data)
         return this
     }
 
     fun withGif(stream: ByteArrayOutputStream): GifOptionsBuilder {
-        gif = GifData.ByteStream(stream)
+        gifData = GifData.ByteStream(stream)
         return this
     }
 
     fun build() {
         view.apply {
-            setScaleType(scaleType)
-            setStartOffset(startOffset)
-            setRestoreFrames(restoreFrame)
+            scaleType?.let { setScaleType(it) }
+            startOffset?.let { setStartOffset(it) }
+            restoreStrategy?.let { setRestoreStrategy(it) }
         }
         parseGifData()
     }
 
     private fun parseGifData() {
-        when (val gifData = gif) {
+        when (val gifData = gifData) {
             is GifData.Asset -> view.setGif(gifData.assetManager, gifData.name)
             is GifData.ByteArray -> view.setGif(gifData.array)
             is GifData.ByteStream -> view.setGif(gifData.stream)

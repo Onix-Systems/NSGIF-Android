@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <com.onix.libnsgif.demo.GifView
+        <com.libnsgif.android.view.NsGifView
             android:id="@+id/itemGif"
             android:layout_width="match_parent"
             android:layout_height="200dp"
@@ -17,7 +17,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.onix.libnsgif.demo.GifView
+        <com.libnsgif.android.view.NsGifView
             android:id="@+id/itemGifWrap"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
