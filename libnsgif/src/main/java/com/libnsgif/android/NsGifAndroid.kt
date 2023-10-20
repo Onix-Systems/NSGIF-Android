@@ -10,7 +10,7 @@ class NsGifAndroid private constructor() {
 
     private val nsGifLib = NsGifLib.getInstance()
 
-    fun isValid() = nsGifLib.isValid()
+    fun isValid(id: Int) = nsGifLib.isValid(id)
 
     fun setGif(data: ByteArray) = nsGifLib.setGif(data)
 

@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
+    id("org.jetbrains.dokka") version "1.9.10"
 }
 
 android {
@@ -60,11 +61,17 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-
+                artifact(tasks["dokkaJavadocJar"])
                 groupId = "com.systems-onix.android"
                 artifactId = "nsgif-library"
-                version = "0.0.4"
+                version = "0.0.5"
             }
         }
     }
+}
+
+tasks.register<Jar>("dokkaJavadocJar") {
+    dependsOn(tasks.dokkaJavadoc)
+    from(tasks.dokkaJavadoc.flatMap { it.outputDirectory })
+    archiveClassifier.set("javadoc")
 }

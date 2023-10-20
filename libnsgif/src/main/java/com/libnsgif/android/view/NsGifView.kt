@@ -151,35 +151,35 @@ class NsGifView @JvmOverloads constructor(
         resetGif()
         id = gifLib.setGif(name)
         setupAnimation()
-        return gifLib.isValid()
+        return gifLib.isValid(this.id)
     }
 
     fun setGif(asset: AssetManager, name: String): Boolean {
         resetGif()
         id = gifLib.setGif(asset, name)
         setupAnimation()
-        return gifLib.isValid()
+        return gifLib.isValid(this.id)
     }
 
     fun setGif(resource: Context, id: Int): Boolean {
         resetGif()
         this.id = gifLib.setGif(resource, id)
         setupAnimation()
-        return gifLib.isValid()
+        return gifLib.isValid(this.id)
     }
 
     fun setGif(data: ByteArray): Boolean {
         resetGif()
         id = gifLib.setGif(data)
         setupAnimation()
-        return gifLib.isValid()
+        return gifLib.isValid(this.id)
     }
 
     fun setGif(stream: ByteArrayOutputStream): Boolean {
         resetGif()
         id = gifLib.setGif(stream.toByteArray())
         setupAnimation()
-        return gifLib.isValid()
+        return gifLib.isValid(this.id)
     }
 
     fun optionsBuilder() = GifOptionsBuilder(this)
