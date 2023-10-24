@@ -1,5 +1,23 @@
 package com.libnsgif.entity
 
+/**
+ * An enumeration representing the result codes for loading GIF into memory.
+ *
+ * This enumeration defines result codes that can be returned when working with GIF loading.
+ * It provides meaningful values for different outcomes, such as success or various error conditions.
+ *
+ * @property num The numeric code associated with each result.
+ *
+ * Example usage:
+ *
+ * ```kotlin
+ * val gifInfo = NsGifLib.getInstance().getGifInfo(gifId)
+ * val result = gifInfo.result
+ * if (result == NsGifResult.GIF_OK) {
+ *     println("The operation was successful.")
+ * }
+ * ```
+ */
 enum class NsGifResult(val num: Int) {
     GIF_WORKING(1),
     GIF_OK(0),

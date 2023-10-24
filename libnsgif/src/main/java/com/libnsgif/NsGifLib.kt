@@ -3,6 +3,9 @@ package com.libnsgif
 import com.libnsgif.NsGifLib.Companion.getInstance
 import com.libnsgif.entity.NsGifInfo
 import com.libnsgif.entity.NsGifResult
+import com.libnsgif.entity.NsPixelCopyResult
+import com.libnsgif.entity.exception.NoSuchGifException
+import com.libnsgif.entity.exception.WrongArraySizeException
 import com.libnsgif.storage.NsGifStorage
 import java.io.InputStream
 
@@ -97,32 +100,57 @@ class NsGifLib private constructor() {
     }
 
     /**
-     * Copies the pixel data of the current gif frame to the destination array.
+     * Copies the pixel data of the current GIF frame to the destination array.
      *
-     * @param dest The destination array to copy pixel data into. Size should be the same as gif frame,
-     * to make sure, use (width * height) from [getGifInfo] method as array size
+     * This method retrieves the pixel data of the currently displayed frame of the GIF associated with the given ID
+     * and copies it into the provided destination array.
+     *
+     * @param dest The destination array to copy pixel data into. The size of this array should match the dimensions
+     * of the GIF frame. To ensure the array size matches the frame size, use the width and height obtained from the
+     * [getGifInfo] method.
      * @param id The ID of the loaded GIF.
-     * @return `true` if the operation is successful, `false` otherwise.
+     * @return A [Result] representing the outcome of the operation. The result can be one of the following:
+     *   - [Result.success] if the operation is successful and the pixels are copied.
+     *   - [Result.failure] with a [NoSuchGifException] if there is no GIF with the specified ID.
+     *   - [Result.failure] with a [WrongArraySizeException] if the destination array has the wrong size.
+     *   - [Result.failure] with a generic [Throwable] if an unexpected error occurs during execution.
      *
+     * @see NoSuchGifException
+     * @see WrongArraySizeException
      * @sample com.libnsgif.sample.NsGifLibSample.copyPixels
      */
-    fun copyPixels(dest: IntArray, id: Int): Boolean {
-        return getGifImageExist(dest, id) > 0
+    fun copyPixels(dest: IntArray, id: Int): Result<Unit> {
+        val copyResult = getGifImageExist(dest, id)
+        return when (NsPixelCopyResult.values().find { it.num == copyResult }) {
+            NsPixelCopyResult.SUCCESS -> Result.success(Unit)
+            NsPixelCopyResult.NO_GIF_WITH_SUCH_ID -> Result.failure(NoSuchGifException())
+            NsPixelCopyResult.WRONG_ARRAY_SIZE -> Result.failure(WrongArraySizeException())
+            null -> Result.failure(Throwable("Unexpected error happened during 'copyPixels' execution"))
+        }
     }
 
     /**
-     * Copies the pixel data of a specific frame to the destination array.
-     * Please read about frame changes here [setGifFrame] to get restrictions and prevent unexpected behaviors
+     * Copies the pixel data of the specific GIF frame to the destination array.
      *
-     * @param dest The destination array to copy pixel data into. Size should be the same as gif frame,
-     * to make sure, use (width * height) from [getGifInfo] method as array size
-     * @param frame The index of the frame to set.
+     * This method retrieves the pixel data of the currently displayed frame of the GIF associated with the given ID
+     * and copies it into the provided destination array.
+     *
+     * @param dest The destination array to copy pixel data into. The size of this array should match the dimensions
+     * of the GIF frame. To ensure the array size matches the frame size, use the width and height obtained from the
+     * [getGifInfo] method.
      * @param id The ID of the loaded GIF.
-     * @return `true` if the operation is successful, `false` otherwise.
+     * @param frame The index of the frame to set.
+     * @return A [Result] representing the outcome of the operation. The result can be one of the following:
+     *   - [Result.success] if the operation is successful and the pixels are copied.
+     *   - [Result.failure] with a [NoSuchGifException] if there is no GIF with the specified ID.
+     *   - [Result.failure] with a [WrongArraySizeException] if the destination array has the wrong size.
+     *   - [Result.failure] with a generic [Throwable] if an unexpected error occurs during execution.
      *
+     * @see NoSuchGifException
+     * @see WrongArraySizeException
      * @sample com.libnsgif.sample.NsGifLibSample.copyPixelsForFrame
      */
-    fun copyPixels(dest: IntArray, frame: Int, id: Int): Boolean {
+    fun copyPixels(dest: IntArray, frame: Int, id: Int): Result<Unit> {
         setGifFrame(frame, id)
         return copyPixels(dest, id)
     }

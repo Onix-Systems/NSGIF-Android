@@ -281,13 +281,19 @@ JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifImageExist(JNIEnv * env,
         jsize length = env->GetArrayLength(intArray);
         unsigned char* cArray = getGIF(_id)->get_image();
 
+        size_t size = getGIF(_id)->get_width() * getGIF(_id)->get_height();
+
+        if (length != size) {
+            return -2;
+        }
+
         for (int i = 0; i < length; i++) {
             auto red = (uint8_t) cArray[i * 4];
             auto green = (uint8_t) cArray[i * 4 + 1];
             auto blue = (uint8_t) cArray[i * 4 + 2];
             auto alpha = (uint8_t) cArray[i * 4 + 3];
 
-            dstElements[i] = (alpha << 24) | (red << 16) | (green << 8) | blue;;
+            dstElements[i] = (alpha << 24) | (red << 16) | (green << 8) | blue;
         }
 
         env->ReleaseIntArrayElements(intArray, dstElements, 0);
