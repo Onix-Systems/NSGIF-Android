@@ -64,7 +64,7 @@ afterEvaluate {
                 artifact(tasks["dokkaJavadocJar"])
                 groupId = "com.systems-onix.android"
                 artifactId = "nsgif-library"
-                version = "0.0.5"
+                version = "0.0.6"
             }
         }
     }
