@@ -10,6 +10,7 @@ import android.graphics.RectF
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.View
+import com.libnsgif.NsGifLib
 import com.libnsgif.android.NsGifAndroid
 import com.libnsgif.android.builder.GifOptionsBuilder
 import com.libnsgif.android.builder.RestoreStrategy
@@ -41,7 +42,7 @@ class NsGifView @JvmOverloads constructor(
     private var currentFrame = 0
     private var startOffset = 0
     private var scaleType = Matrix.ScaleToFit.CENTER
-    private var restoreStrategy = RestoreStrategy.IGNORE
+    private var restoreStrategy = RestoreStrategy.RESTART
     private var drawMatrix = Matrix()
     private val paint = Paint()
     private val bitmapRect = RectF()
@@ -206,7 +207,7 @@ class NsGifView @JvmOverloads constructor(
             destroyGif()
             gifInfo = NsGifInfo()
             currentFrame = 0
-            id = -1
+            id = NsGifLib.INVALID_ID
         }
     }
 
@@ -288,5 +289,5 @@ class NsGifView @JvmOverloads constructor(
         }
     }
 
-    private fun gifSet() = (id != -1)
+    private fun gifSet() = (id != NsGifLib.INVALID_ID)
 }

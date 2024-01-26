@@ -10,6 +10,8 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
+import com.libnsgif.android.NsGifAndroid
+import com.libnsgif.entity.CachingStrategy
 import com.onix.libnsgif.demo.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -20,6 +22,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+
+        // TODO: can be moved to starting point of the app
+        NsGifAndroid.initialize(CachingStrategy.DISABLED)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

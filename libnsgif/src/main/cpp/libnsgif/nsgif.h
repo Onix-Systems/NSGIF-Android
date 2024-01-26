@@ -120,7 +120,7 @@ public:
     nsgif(signed char *array, size_t size);
     nsgif(FILE *file,size_t size);
     virtual ~nsgif();
-    bool decode_frame(unsigned int frame);
+    bool decode_frame(unsigned int frame, bool cache);
     unsigned char* get_image();
     int get_width();
     int get_height();
@@ -130,6 +130,9 @@ public:
     void setId(int _id);
     int get_current_frame();
     int get_gif_result();
+    void setCachingStrategy(int strategy);
+
+    unsigned char **cachedFrames;
 protected:
     void *gif_bitmap_cb_create(int width, int height);
     void gif_bitmap_cb_destroy(void *bitmap);
@@ -145,7 +148,7 @@ private:
     unsigned char *gif_data;
     bool clear_image;
     //
-    gif_result gif_decode_frame(gif_animation *gif, unsigned int frame);
+    gif_result gif_decode_frame(gif_animation *gif, unsigned int frame, bool cache);
     void gif_finalise(gif_animation *gif);
     gif_result gif_initialise(gif_animation *gif, size_t size, unsigned char *data);
     gif_result gif_initialise_frame(gif_animation *gif);
@@ -170,6 +173,8 @@ private:
     int firstcode, oldcode;
     bool zero_data_block;
     bool get_done;
+    int cachingStrategy;    // 0 - disabled, 1 - when decoded, 2 - pre-cache
+
     //
     void gif_init_LZW(gif_animation *gif);
     int gif_next_code(gif_animation *gif, int code_size);

@@ -19,25 +19,25 @@ class libnsgif;
 extern "C" {
 #endif
 
-std::vector<nsgif*> data;
+std::vector<nsgif *> data;
 
-bool existGIF(int _id){
-    std::vector<nsgif*>::iterator i;
-    for ( i = data.begin(); i != data.end(); ++i ){
-        nsgif* img = *i;
-        if(img->getId()==_id){
+bool existGIF(int _id) {
+    std::vector<nsgif *>::iterator i;
+    for (i = data.begin(); i != data.end(); ++i) {
+        nsgif *img = *i;
+        if (img->getId() == _id) {
             return true;
         }
     }
     return false;
 }
 
-bool removeGIF(int _id){
-    std::vector<nsgif*>::iterator i;
-    for ( i = data.begin(); i != data.end(); ++i ){
-        nsgif* img = *i;
-        if(img->getId()==_id){
-            delete(img);
+bool removeGIF(int _id) {
+    std::vector<nsgif *>::iterator i;
+    for (i = data.begin(); i != data.end(); ++i) {
+        nsgif *img = *i;
+        if (img->getId() == _id) {
+            delete (img);
             data.erase(i);
             return true;
         }
@@ -45,12 +45,10 @@ bool removeGIF(int _id){
     return false;
 }
 
-bool addGIF(nsgif *_image){
-    if(_image!=NULL){
-        if(existGIF(_image->getId())){
-            if(!removeGIF(_image->getId())){
-                false;
-            }
+bool addGIF(nsgif *_image) {
+    if (_image != nullptr) {
+        if (existGIF(_image->getId())) {
+            removeGIF(_image->getId());
         }
         data.push_back(_image);
         return true;
@@ -59,24 +57,24 @@ bool addGIF(nsgif *_image){
 }
 
 
-nsgif* getGIF(int _id){
-    std::vector<nsgif*>::iterator i;
-    for ( i = data.begin(); i != data.end(); ++i ){
-        nsgif* img = *i;
-        if(img->getId()==_id){
+nsgif *getGIF(int _id) {
+    std::vector<nsgif *>::iterator i;
+    for (i = data.begin(); i != data.end(); ++i) {
+        nsgif *img = *i;
+        if (img->getId() == _id) {
             return img;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
 JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_loadGifFile(
-        JNIEnv * env, jobject obj, jstring name, int _id) {
-    const char *_name = env->GetStringUTFChars(name, NULL);
+        JNIEnv *env, jobject obj, jstring name, int _id, int cacheStrategy) {
+    const char *_name = env->GetStringUTFChars(name, nullptr);
     char realname[256];
     strcpy(realname, _name);
-    struct stat sb;
+    struct stat sb{};
     size_t size;
 
     if (stat(realname, &sb)) {
@@ -87,41 +85,42 @@ JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_loadGifFile(
     FILE *fd;
     fd = fopen(realname, "rb");
 
-    nsgif* cpp_gif = new nsgif(fd, size);
+    auto *cpp_gif = new nsgif(fd, size);
 
-    bool code2 = cpp_gif->decode_frame(0);
+    bool code2 = cpp_gif->decode_frame(0, false);
     if (!code2) {
         return -1;
     }
     cpp_gif->setId(_id);
-    if(!addGIF(cpp_gif)){
-        return -1;
-    }
+    cpp_gif->setCachingStrategy(cacheStrategy);
+    addGIF(cpp_gif);
+
     return 1;
 }
 
 JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_loadGifArray(
-        JNIEnv * env, jobject obj, jbyteArray array, int _id) {
+        JNIEnv *env, jobject obj, jbyteArray array, int _id, int cacheStrategy) {
 
-    jbyte* array_j;
-    array_j = env->GetByteArrayElements(array, 0);
+    jbyte *array_j;
+    array_j = env->GetByteArrayElements(array, nullptr);
     jsize size = env->GetArrayLength(array);
 
-    nsgif* cpp_gif = new nsgif(array_j, size);
+    auto *cpp_gif = new nsgif(array_j, size);
     env->ReleaseByteArrayElements(array, array_j, 0);
-    bool code2 = cpp_gif->decode_frame(0);
+    bool code2 = cpp_gif->decode_frame(0, false);
     if (!code2) {
         return -1;
     }
     cpp_gif->setId(_id);
-    if(!addGIF(cpp_gif)){
-        return -1;
-    }
+    cpp_gif->setCachingStrategy(cacheStrategy);
+    addGIF(cpp_gif);
+
     return 1;
 }
 
 JNIEXPORT jint JNICALL
-Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject inputStreamObj, int _id) {
+Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject inputStreamObj, int _id,
+                                         int cacheStrategy) {
     jclass inputStreamClass = env->GetObjectClass(inputStreamObj);
 
     jclass fileInputStreamClass = env->FindClass("java/io/FileInputStream");
@@ -142,7 +141,8 @@ Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject input
     jbyte *cArray;
 
     if (isFileInputStream) {
-        jmethodID getChannelMethod = env->GetMethodID(fileInputStreamClass, "getChannel", "()Ljava/nio/channels/FileChannel;");
+        jmethodID getChannelMethod = env->GetMethodID(fileInputStreamClass, "getChannel",
+                                                      "()Ljava/nio/channels/FileChannel;");
 
         jobject fileChannelObj = env->CallObjectMethod(inputStreamObj, getChannelMethod);
 
@@ -151,7 +151,7 @@ Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject input
 
         jlong fileSize = env->CallLongMethod(fileChannelObj, sizeMethod);
 
-        cArray = (jbyte *)malloc(fileSize);
+        cArray = (jbyte *) malloc(fileSize);
         env->DeleteLocalRef(fileChannelObj);
         env->DeleteLocalRef(fileChannelClass);
         if (cArray == nullptr) {
@@ -172,8 +172,8 @@ Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject input
 
         jbyte *bytes = env->GetByteArrayElements(byteArray, nullptr);
 
-        if (!isFileInputStream){
-            auto *newCArray = (jbyte *)realloc(cArray, (totalBytes + bytesRead) * sizeof(jbyte));
+        if (!isFileInputStream) {
+            auto *newCArray = (jbyte *) realloc(cArray, (totalBytes + bytesRead) * sizeof(jbyte));
             if (newCArray == nullptr) {
                 env->ReleaseByteArrayElements(byteArray, bytes, JNI_ABORT);
                 env->DeleteLocalRef(byteArray);
@@ -195,93 +195,114 @@ Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject input
 
     auto size = (jsize) totalBytes;
 
-    auto* cpp_gif = new nsgif(cArray, size);
+    auto *cpp_gif = new nsgif(cArray, size);
 
-    bool code2 = cpp_gif->decode_frame(0);
+    bool code2 = cpp_gif->decode_frame(0, false);
     if (!code2) {
         return -1;
     }
     cpp_gif->setId(_id);
 
     env->DeleteLocalRef(byteArray);
-
+    cpp_gif->setCachingStrategy(cacheStrategy);
     addGIF(cpp_gif);
 
     return 1;
 }
 
-JNIEXPORT void JNICALL Java_com_libnsgif_NsGifLib_destroyGif(JNIEnv * env, jobject obj, int _id) {
+JNIEXPORT void JNICALL Java_com_libnsgif_NsGifLib_destroyGif(JNIEnv *env, jobject obj, int _id) {
     removeGIF(_id);
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifWidth(
-        JNIEnv * env, jobject obj, int _id) {
-    if(getGIF(_id)!=NULL){
+JNIEXPORT void JNICALL Java_com_libnsgif_NsGifLib_cacheGif(JNIEnv *env, jobject obj, int _id) {
+    int frames = 0;
+    nsgif *gif;
+    if (getGIF(_id) != nullptr) {
+        gif = getGIF(_id);
+        frames = gif->get_count();
+    } else {
+        return;
+    }
+    for (int i = 0; i < frames; ++i) {
+        gif->decode_frame(i, true);
+    }
+    free(gif);
+}
+
+JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifWidth(JNIEnv *env, jobject obj, int _id) {
+    if (getGIF(_id) != nullptr) {
         return getGIF(_id)->get_width();
     }
     return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifHeight(
-        JNIEnv * env, jobject obj, int _id) {
-    if(getGIF(_id)!=NULL){
+JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifHeight(JNIEnv *env, jobject obj, int _id) {
+    if (getGIF(_id) != nullptr) {
         return getGIF(_id)->get_height();
     }
     return -1;
 }
 
 JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifCurrentFrame(
-        JNIEnv * env, jobject obj, int _id) {
-    if(getGIF(_id)!=NULL){
+        JNIEnv *env, jobject obj, int _id) {
+    if (getGIF(_id) != nullptr) {
         return getGIF(_id)->get_current_frame();
     }
     return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifResult(
-        JNIEnv * env, jobject obj, int _id) {
-    if(getGIF(_id)!=NULL){
+JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifResult(JNIEnv *env, jobject obj, int _id) {
+    if (getGIF(_id) != nullptr) {
         return getGIF(_id)->get_gif_result();
     }
     return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifFrameCount(
-        JNIEnv * env, jobject obj, int _id) {
-    if(getGIF(_id)!=NULL){
+JNIEXPORT jint JNICALL
+Java_com_libnsgif_NsGifLib_getGifFrameCount(JNIEnv *env, jobject obj, int _id) {
+    if (getGIF(_id) != nullptr) {
         return getGIF(_id)->get_count();
     }
     return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_setGifFrame(
-        JNIEnv * env, jobject obj, jint number, int _id) {
-    if(getGIF(_id)!=NULL){
-        if( number>=0 && number<getGIF(_id)->get_count()){
-            return getGIF(_id)->decode_frame(number);
+JNIEXPORT jint JNICALL
+Java_com_libnsgif_NsGifLib_setGifFrame(JNIEnv *env, jobject obj, jint number, int _id) {
+    if (getGIF(_id) != nullptr) {
+        if (number >= 0 && number < getGIF(_id)->get_count()) {
+            return getGIF(_id)->decode_frame(number, false);
         }
     }
     return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifFrameTime(
-        JNIEnv * env, jobject obj, jint number, int id) {
-    if(getGIF(id)!=NULL){
-        if( number>=0 && number<getGIF(id)->get_count()){
+JNIEXPORT jint JNICALL
+Java_com_libnsgif_NsGifLib_getGifFrameTime(JNIEnv *env, jobject obj, jint number, int id) {
+    if (getGIF(id) != nullptr) {
+        if (number >= 0 && number < getGIF(id)->get_count()) {
             return getGIF(id)->get_time(number);
         }
     }
     return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifImageExist(JNIEnv * env, jobject  obj, jintArray intArray, int _id)
-{
+JNIEXPORT jint JNICALL
+Java_com_libnsgif_NsGifLib_getGifImageExist(JNIEnv *env, jobject obj, jintArray intArray, int _id) {
     if (getGIF(_id) != nullptr) {
-        jint* dstElements = env->GetIntArrayElements(intArray, nullptr);
+        jint *dstElements = env->GetIntArrayElements(intArray, nullptr);
         jsize length = env->GetArrayLength(intArray);
-        unsigned char* cArray = getGIF(_id)->get_image();
+        unsigned char *cArray;
 
-        size_t size = getGIF(_id)->get_width() * getGIF(_id)->get_height();
+        nsgif *gif = getGIF(_id);
+        int currentFrame = gif->get_current_frame();
+
+        if (gif->cachedFrames[currentFrame] != nullptr && currentFrame != 0) {
+            cArray = gif->cachedFrames[currentFrame];
+        } else {
+            cArray = gif->get_image();
+        }
+
+        size_t size = gif->get_width() * gif->get_height();
 
         if (length != size) {
             return -2;

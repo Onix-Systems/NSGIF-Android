@@ -1,6 +1,7 @@
 package com.libnsgif
 
 import com.libnsgif.NsGifLib.Companion.getInstance
+import com.libnsgif.entity.CachingStrategy
 import com.libnsgif.entity.NsGifInfo
 import com.libnsgif.entity.NsGifResult
 import com.libnsgif.entity.NsPixelCopyResult
@@ -22,6 +23,8 @@ import java.io.InputStream
 class NsGifLib private constructor() {
 
     private val gifStorage = NsGifStorage.getInstance()
+
+    private var cachingStrategy = CachingStrategy.DISABLED
 
     init {
         System.loadLibrary("libnsgif")
@@ -50,12 +53,17 @@ class NsGifLib private constructor() {
      * @sample com.libnsgif.sample.NsGifLibSample.setGifWithPath
      */
     fun setGif(path: String): Int {
-        val id = gifStorage.generateId()
-        return if (loadGifFile(path, id) > 0) {
+        var id = gifStorage.generateId()
+        id = if (loadGifFile(path, id, cachingStrategy.num) > 0) {
             id
         } else {
             INVALID_ID
         }
+        if (cachingStrategy == CachingStrategy.PRE_CACHE) {
+            cacheGif(id)
+        }
+
+        return id
     }
 
     /**
@@ -67,12 +75,17 @@ class NsGifLib private constructor() {
      * @sample com.libnsgif.sample.NsGifLibSample.setGifWithByteArray
      */
     fun setGif(data: ByteArray): Int {
-        val id = gifStorage.generateId()
-        return if (loadGifArray(data, id) > 0) {
+        var id = gifStorage.generateId()
+        id = if (loadGifArray(data, id, cachingStrategy.num) > 0) {
             id
         } else {
             INVALID_ID
         }
+        if (cachingStrategy == CachingStrategy.PRE_CACHE) {
+            cacheGif(id)
+        }
+
+        return id
     }
 
     /**
@@ -88,15 +101,20 @@ class NsGifLib private constructor() {
      * @sample com.libnsgif.sample.NsGifLibSample.setGifWithInputStream
      */
     fun setGif(stream: InputStream): Int {
-        val id = gifStorage.generateId()
-        val result = loadGifStream(stream, id)
+        var id = gifStorage.generateId()
+        val result = loadGifStream(stream, id, cachingStrategy.num)
         stream.close()
 
-        return if (result > 0) {
+        id =  if (result > 0) {
             id
         } else {
             INVALID_ID
         }
+        if (cachingStrategy == CachingStrategy.PRE_CACHE) {
+            cacheGif(id)
+        }
+
+        return id
     }
 
     /**
@@ -201,7 +219,7 @@ class NsGifLib private constructor() {
      * @return The result of the operation. A positive value indicates success, while a non-positive value indicates an error.
      */
     @Synchronized
-    private external fun loadGifFile(name: String, id: Int): Int
+    private external fun loadGifFile(name: String, id: Int, cacheStrategy: Int): Int
 
     /**
      * Loads a GIF from a byte array into memory.
@@ -211,7 +229,7 @@ class NsGifLib private constructor() {
      * @return The result of the operation. A positive value indicates success, while a non-positive value indicates an error.
      */
     @Synchronized
-    private external fun loadGifArray(array: ByteArray, id: Int): Int
+    private external fun loadGifArray(array: ByteArray, id: Int, cacheStrategy: Int): Int
 
     /**
      * Loads a GIF from an input stream into memory.
@@ -221,7 +239,7 @@ class NsGifLib private constructor() {
      * @return The result of the operation. A positive value indicates success, while a non-positive value indicates an error.
      */
     @Synchronized
-    private external fun loadGifStream(stream: InputStream, id: Int): Int
+    private external fun loadGifStream(stream: InputStream, id: Int, cacheStrategy: Int): Int
 
     /**
      * Retrieves the index of the current frame of the loaded GIF.
@@ -309,6 +327,9 @@ class NsGifLib private constructor() {
     @Synchronized
     external fun getGifFrameTime(frame: Int, id: Int): Int
 
+    @Synchronized
+    external fun cacheGif(id: Int)
+
     /**
      * Destroys the loaded GIF and releases associated resources.
      *
@@ -324,7 +345,7 @@ class NsGifLib private constructor() {
      * The NSGIF library can be accessed through the [getInstance] method.
      */
     companion object {
-        private const val INVALID_ID = -1
+        const val INVALID_ID = -1
         private var value: NsGifLib? = null
 
         /**
@@ -334,6 +355,10 @@ class NsGifLib private constructor() {
          */
         fun getInstance(): NsGifLib {
             return value ?: NsGifLib().also { value = it }
+        }
+
+        fun initialize(cachingStrategy: CachingStrategy) {
+            (value ?: getInstance()).cachingStrategy = cachingStrategy
         }
     }
 }

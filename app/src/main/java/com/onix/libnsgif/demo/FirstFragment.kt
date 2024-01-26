@@ -26,7 +26,7 @@ class FirstFragment : Fragment() {
 
             image.optionsBuilder()
                 .withGif(resources.assets, "tiger.gif")
-                .withOffset(20)
+//                .withOffset(100)
                 .withScaleType(Matrix.ScaleToFit.CENTER)
                 .withRestoreStrategy(RestoreStrategy.LAST_FRAME)
                 .build()
@@ -43,7 +43,7 @@ class FirstFragment : Fragment() {
                 NsGifLib.getInstance().apply {
 
                     if (count % 3 == 0) {
-                        image.setGif(resources.assets, "waves.gif")
+                        image.setGif(resources.assets, "tiger.gif")
                     } else if (count % 2 == 0) {
                         image.setGif(resources.assets, "man2.gif")
                     } else {

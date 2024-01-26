@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.Bitmap
 import com.libnsgif.NsGifLib
+import com.libnsgif.entity.CachingStrategy
 import com.libnsgif.entity.NsGifInfo
 import com.libnsgif.entity.exception.NoSuchGifException
 import com.libnsgif.entity.exception.WrongArraySizeException
@@ -252,6 +253,10 @@ class NsGifAndroid private constructor() {
          */
         fun getInstance(): NsGifAndroid {
             return value ?: NsGifAndroid().also { value = it }
+        }
+
+        fun initialize(cachingStrategy: CachingStrategy) {
+            NsGifLib.initialize(cachingStrategy)
         }
     }
 }

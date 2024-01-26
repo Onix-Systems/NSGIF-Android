@@ -63,7 +63,10 @@ nsgif::nsgif(FILE *file, size_t size)
 //    printf("# frame_count          %u \n", gif_pointer->frame_count);
 //    printf("# frame_count_partial  %u \n", gif_pointer->frame_count_partial);
 //    printf("# loop_count           %u \n", gif_pointer->loop_count);
-
+	cachedFrames = (unsigned char **) malloc(gif_pointer->frame_count * sizeof(unsigned char *));
+	for (int i = 0; i < gif_pointer->frame_count; ++i) {
+		cachedFrames[i] = nullptr;
+	}
 }
 
 nsgif::nsgif(signed char *array, size_t size)
@@ -130,7 +133,10 @@ nsgif::nsgif(signed char *array, size_t size)
 //    printf("# frame_count          %u \n", gif_pointer->frame_count);
 //    printf("# frame_count_partial  %u \n", gif_pointer->frame_count_partial);
 //    printf("# loop_count           %u \n", gif_pointer->loop_count);
-
+	cachedFrames = (unsigned char **) malloc(gif_pointer->frame_count * sizeof(unsigned char *));
+	for (int i = 0; i < gif_pointer->frame_count; ++i) {
+		cachedFrames[i] = nullptr;
+	}
 }
 
 nsgif::~nsgif()
@@ -139,13 +145,13 @@ nsgif::~nsgif()
     gif_finalise(gif_pointer);
 }
 
-bool nsgif::decode_frame(unsigned int frame){
-    gif_result result;
-    result = gif_decode_frame(gif_pointer,frame);
-    if(result==GIF_OK){
-        return true;
-    }
-    return false;
+bool nsgif::decode_frame(unsigned int frame, bool cache) {
+	gif_result result;
+	result = gif_decode_frame(gif_pointer, frame, cache);
+	if (result == GIF_OK) {
+		return true;
+	}
+	return false;
 }
 
 unsigned char* nsgif::get_image(){
@@ -343,7 +349,7 @@ int nsgif::gif_next_code(gif_animation *gif, int code_size) {
 		If a frame does not contain any image data, GIF_OK is returned and
 			gif->current_error is set to GIF_FRAME_NO_DISPLAY
 */
-nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame) {
+nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame, bool cache) {
 	unsigned int index = 0;
 	unsigned char *gif_data, *gif_end;
 	int gif_bytes;
@@ -491,7 +497,11 @@ nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame
 
 	/*	Get the frame data
 	*/
-	frame_data = (unsigned int *)gif_bitmap_cb_get_buffer(gif->frame_image);
+    if (frame == 0 || cachedFrames[frame - 1] == nullptr || !cache) {
+        frame_data = (unsigned int *) gif_bitmap_cb_get_buffer(gif->frame_image);
+    } else {
+        frame_data = (unsigned int *) gif_bitmap_cb_get_buffer(cachedFrames[frame - 1]);
+    }
 	if (!frame_data)
 		return GIF_INSUFFICIENT_MEMORY;
 
@@ -521,7 +531,7 @@ nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame
 			/* memset((char*)frame_data, colour_table[gif->background_index], gif->width * gif->height * sizeof(int)); */
 		} else if ((frame != 0) && (gif->frames[frame - 1].disposal_method == GIF_FRAME_CLEAR)) {
 			clear_image = true;
-			if ((return_value = gif_decode_frame(gif, (frame - 1))) != GIF_OK)
+			if ((return_value = gif_decode_frame(gif, (frame - 1), cache)) != GIF_OK)
 				goto gif_decode_frame_exit;
 			clear_image = false;
 		/*	If the previous frame's disposal method requires we restore the previous
@@ -535,17 +545,29 @@ nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame
 					/* see notes above on transparency vs. background color */
 					memset((char*)frame_data, GIF_TRANSPARENT_COLOUR, gif->width * gif->height * sizeof(int));
 				} else {
-					if ((return_value = gif_decode_frame(gif, last_undisposed_frame)) != GIF_OK)
+					if ((return_value = gif_decode_frame(gif, last_undisposed_frame, cache)) != GIF_OK)
 						goto gif_decode_frame_exit;
 					/*	Get this frame's data
 					*/
-//					assert(gif->bitmap_callbacks.bitmap_get_buffer);
 					frame_data = (unsigned int *)gif_bitmap_cb_get_buffer(gif->frame_image);
 					if (!frame_data)
 						return GIF_INSUFFICIENT_MEMORY;
 				}
 		}
-		gif->decoded_frame = frame;
+        if (!cache || frame == 0) {
+            gif->decoded_frame = frame;
+        }
+
+		/* Cache frame if needed
+		  */
+        if (cachingStrategy != 0) {
+            auto *temp = (unsigned char *) malloc(gif->width * gif->height * sizeof(int));
+
+            memcpy(temp, frame_data,
+                   gif->width * gif->height * sizeof(int));
+            cachedFrames[frame] = temp;
+            free(temp);
+        }
 
 		/*	Initialise the LZW decoding
 		*/
@@ -1297,6 +1319,12 @@ void nsgif::gif_finalise(gif_animation *gif) {
 	gif->local_colour_table = NULL;
 	free(gif->global_colour_table);
 	gif->global_colour_table = NULL;
+
+	// release cached frames
+	for (int i = 0; i < gif->frame_count; ++i) {
+		free(cachedFrames[i]);
+	}
+	free(cachedFrames);
 }
 
 // Old callbacks
@@ -1349,4 +1377,8 @@ int nsgif::getId()
 void nsgif::setId(int _id)
 {
     id = _id;
+}
+
+void nsgif::setCachingStrategy(int strategy) {
+	cachingStrategy = strategy;
 }
