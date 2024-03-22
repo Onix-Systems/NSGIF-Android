@@ -1,4 +1,5 @@
 #include "nsgif.h"
+#include <android/log.h>
 
 
 nsgif::nsgif(FILE *file, size_t size)
@@ -350,6 +351,9 @@ int nsgif::gif_next_code(gif_animation *gif, int code_size) {
 			gif->current_error is set to GIF_FRAME_NO_DISPLAY
 */
 nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame, bool cache) {
+
+//    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "log");
+
 	unsigned int index = 0;
 	unsigned char *gif_data, *gif_end;
 	int gif_bytes;
@@ -362,11 +366,11 @@ nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame
 	unsigned int return_value = 0;
 	unsigned int x, y, decode_y, burst_bytes;
 	int last_undisposed_frame = (frame - 1);
-	register unsigned char colour;
+    unsigned char colour;
 
 	/*	Ensure this frame is supposed to be decoded
 	*/
-	if (gif->frames[frame].display == false) {
+	if (!gif->frames[frame].display) {
 		gif->current_error = GIF_FRAME_NO_DISPLAY;
 		return GIF_OK;
 	}
@@ -565,8 +569,8 @@ nsgif::gif_result nsgif::gif_decode_frame(gif_animation *gif, unsigned int frame
 
             memcpy(temp, frame_data,
                    gif->width * gif->height * sizeof(int));
+            free(cachedFrames[frame]);
             cachedFrames[frame] = temp;
-            free(temp);
         }
 
 		/*	Initialise the LZW decoding
@@ -645,15 +649,10 @@ gif_decode_frame_exit:
 	/*	Check if we should test for optimisation
 	*/
 	if (gif->frames[frame].virgin) {
-//		if (gif_bitmap_cb_test_opaque(gif->frame_image))
-//			gif->frames[frame].opaque = gif_bitmap_cb_test_opaque(gif->frame_image);
-//		else
         gif->frames[frame].opaque = false;
 		gif->frames[frame].virgin = false;
 	}
-//	if (gif->bitmap_callbacks.bitmap_set_opaque)
 		gif_bitmap_cb_set_opaque(gif->frame_image, gif->frames[frame].opaque);
-//	if (gif->bitmap_callbacks.bitmap_modified)
 		gif_bitmap_cb_modified(gif->frame_image);
 
 	/*	Restore the buffer position

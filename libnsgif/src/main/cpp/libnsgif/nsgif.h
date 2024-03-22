@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "utils/log.h"
-
 /*	Maximum colour table size
 */
 #define GIF_MAX_COLOURS 256

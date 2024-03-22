@@ -226,7 +226,6 @@ JNIEXPORT void JNICALL Java_com_libnsgif_NsGifLib_cacheGif(JNIEnv *env, jobject 
     for (int i = 0; i < frames; ++i) {
         gif->decode_frame(i, true);
     }
-    free(gif);
 }
 
 JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_getGifWidth(JNIEnv *env, jobject obj, int _id) {
