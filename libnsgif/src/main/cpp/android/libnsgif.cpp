@@ -22,9 +22,7 @@ extern "C" {
 std::vector<nsgif *> data;
 
 bool existGIF(int _id) {
-    std::vector<nsgif *>::iterator i;
-    for (i = data.begin(); i != data.end(); ++i) {
-        nsgif *img = *i;
+    for (nsgif* img : data) {
         if (img->getId() == _id) {
             return true;
         }
@@ -89,6 +87,7 @@ JNIEXPORT jint JNICALL Java_com_libnsgif_NsGifLib_loadGifFile(
 
     bool code2 = cpp_gif->decode_frame(0, false);
     if (!code2) {
+        delete cpp_gif;
         return -1;
     }
     cpp_gif->setId(_id);
@@ -202,6 +201,10 @@ Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject input
         return -1;
     }
     cpp_gif->setId(_id);
+
+    if (cArray != nullptr) {
+        free(cArray);
+    }
 
     env->DeleteLocalRef(byteArray);
     cpp_gif->setCachingStrategy(cacheStrategy);
