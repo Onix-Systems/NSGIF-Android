@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Parcelable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import com.libnsgif.NsGifLib
 import com.libnsgif.android.NsGifAndroid
@@ -23,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import kotlin.system.measureTimeMillis
 
 class NsGifView @JvmOverloads constructor(
     context: Context,
@@ -31,7 +33,7 @@ class NsGifView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val gifLib = NsGifAndroid.getInstance()
-    private val scope = CoroutineScope(SupervisorJob())
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var animJob: Job? = null
     private var preloadJob: Job? = null
 
@@ -64,7 +66,7 @@ class NsGifView @JvmOverloads constructor(
                 height.toFloat()
             )
             drawMatrix.setRectToRect(bitmapRect, screenRect, scaleType)
-            canvas.drawBitmap(bitmap, drawMatrix, paint)
+            kotlin.runCatching { canvas.drawBitmap(bitmap, drawMatrix, paint) }
         }
     }
 
@@ -148,39 +150,44 @@ class NsGifView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setGif(name: String): Boolean {
+    fun setGif(name: String) {
         resetGif()
-        id = gifLib.setGif(name)
-        setupAnimation()
-        return gifLib.isValid(this.id)
+        scope.launch {
+            id = gifLib.setGif(name)
+            setupAnimation()
+        }
     }
 
-    fun setGif(asset: AssetManager, name: String): Boolean {
+    fun setGif(asset: AssetManager, name: String) {
         resetGif()
-        id = gifLib.setGif(asset, name)
-        setupAnimation()
-        return gifLib.isValid(this.id)
+        scope.launch {
+            id = gifLib.setGif(asset, name)
+            setupAnimation()
+        }
     }
 
-    fun setGif(resource: Context, id: Int): Boolean {
+    fun setGif(resource: Context, id: Int) {
         resetGif()
-        this.id = gifLib.setGif(resource, id)
-        setupAnimation()
-        return gifLib.isValid(this.id)
+        scope.launch {
+            this@NsGifView.id = gifLib.setGif(resource, id)
+            setupAnimation()
+        }
     }
 
-    fun setGif(data: ByteArray): Boolean {
+    fun setGif(data: ByteArray) {
         resetGif()
-        id = gifLib.setGif(data)
-        setupAnimation()
-        return gifLib.isValid(this.id)
+        scope.launch {
+            id = gifLib.setGif(data)
+            setupAnimation()
+        }
     }
 
-    fun setGif(stream: ByteArrayOutputStream): Boolean {
+    fun setGif(stream: ByteArrayOutputStream) {
         resetGif()
-        id = gifLib.setGif(stream.toByteArray())
-        setupAnimation()
-        return gifLib.isValid(this.id)
+        scope.launch {
+            id = gifLib.setGif(stream.toByteArray())
+            setupAnimation()
+        }
     }
 
     fun optionsBuilder() = GifOptionsBuilder(this)
@@ -188,15 +195,20 @@ class NsGifView @JvmOverloads constructor(
     private fun withStartOffset() {
         if (startOffset > 0) {
             preloadJob = scope.launch(Dispatchers.IO) {
-                setBitmap(gifLib.getGifFrameBitmap(id = id))
+                val setBitmap = measureTimeMillis { setBitmap(gifLib.getGifFrameBitmap(id = id)) }
+                Log.d("TESTING", "setBitmapDuration: $setBitmap")
 
-                getBitmap()?.let { bitmap ->
-                    repeat(startOffset) {
-                        gifLib.setGifFrame(it + 1, id)
+                val offset = measureTimeMillis {
+                    getBitmap()?.let { bitmap ->
+                        repeat(startOffset) {
+                            gifLib.setGifFrame(it + 1, id)
+                        }
+                        gifLib.getGifFrame(bitmap = bitmap, id = id)
+                        currentFrame = startOffset
                     }
-                    gifLib.getGifFrame(bitmap = bitmap, id = id)
-                    currentFrame = startOffset
                 }
+                Log.d("TESTING", "setOffset: $offset")
+
             }
         }
     }
@@ -230,7 +242,7 @@ class NsGifView @JvmOverloads constructor(
             return
         }
 
-        animJob = scope.launch(Dispatchers.Main.immediate) {
+        animJob = scope.launch(Dispatchers.Main) {
             preloadJob?.join()
             /* debounce delay between canceling and starting job */
             delay(5)

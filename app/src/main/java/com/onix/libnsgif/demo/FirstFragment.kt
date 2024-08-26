@@ -1,6 +1,5 @@
 package com.onix.libnsgif.demo
 
-import android.annotation.SuppressLint
 import android.graphics.Matrix
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -21,19 +20,12 @@ class FirstFragment : Fragment() {
         savedInstanceState: Bundle?,
     ) = FragmentFirstBinding.inflate(inflater).also { binding = it }.root
 
-    @SuppressLint("SdCardPath")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         with(binding) {
 
-            val man = "/data/user/0/com.onix.libnsgif.demo/files/man.gif"
-            val man2 = "/data/user/0/com.onix.libnsgif.demo/files/man2.gif"
-            val tiger = "/data/user/0/com.onix.libnsgif.demo/files/tiger.gif"
-            val waves = "/data/user/0/com.onix.libnsgif.demo/files/waves.gif"
-            val woman = "/data/user/0/com.onix.libnsgif.demo/files/woman.gif"
-
             image.optionsBuilder()
-                .withGif(tiger)
+                .withGif(resources.assets, "tiger.gif")
                 .withScaleType(Matrix.ScaleToFit.CENTER)
                 .withRestoreStrategy(RestoreStrategy.LAST_FRAME)
                 .build()
@@ -50,11 +42,11 @@ class FirstFragment : Fragment() {
                 NsGifLib.getInstance().apply {
 
                     if (count % 3 == 0) {
-                        image.setGif(tiger)
+                        image.setGif(resources.assets, "desert.gif")
                     } else if (count % 2 == 0) {
-                        image.setGif(waves)
+                        image.setGif(resources.assets, "lines.gif")
                     } else {
-                        image.setGif(man)
+                        image.setGif(resources.assets, "man.gif")
                     }
                     count++
                 }

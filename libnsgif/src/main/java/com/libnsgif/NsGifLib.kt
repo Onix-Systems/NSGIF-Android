@@ -1,5 +1,6 @@
 package com.libnsgif
 
+import android.util.Log
 import com.libnsgif.NsGifLib.Companion.getInstance
 import com.libnsgif.entity.CachingStrategy
 import com.libnsgif.entity.NsGifInfo
@@ -8,7 +9,10 @@ import com.libnsgif.entity.NsPixelCopyResult
 import com.libnsgif.entity.exception.NoSuchGifException
 import com.libnsgif.entity.exception.WrongArraySizeException
 import com.libnsgif.storage.NsGifStorage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.InputStream
+import kotlin.system.measureTimeMillis
 
 /**
  * The main class for working with NSGIF library.
@@ -52,7 +56,7 @@ class NsGifLib private constructor() {
      *
      * @sample com.libnsgif.sample.NsGifLibSample.setGifWithPath
      */
-    fun setGif(path: String): Int {
+    suspend fun setGif(path: String) = withContext(Dispatchers.IO) {
         var id = gifStorage.generateId()
         id = if (loadGifFile(path, id, cachingStrategy.num) > 0) {
             id
@@ -63,7 +67,7 @@ class NsGifLib private constructor() {
             cacheGif(id)
         }
 
-        return id
+        id
     }
 
     /**
@@ -74,7 +78,7 @@ class NsGifLib private constructor() {
      *
      * @sample com.libnsgif.sample.NsGifLibSample.setGifWithByteArray
      */
-    fun setGif(data: ByteArray): Int {
+    suspend fun setGif(data: ByteArray) = withContext(Dispatchers.IO) {
         var id = gifStorage.generateId()
         id = if (loadGifArray(data, id, cachingStrategy.num) > 0) {
             id
@@ -85,7 +89,7 @@ class NsGifLib private constructor() {
             cacheGif(id)
         }
 
-        return id
+        id
     }
 
     /**
@@ -100,21 +104,23 @@ class NsGifLib private constructor() {
      *
      * @sample com.libnsgif.sample.NsGifLibSample.setGifWithInputStream
      */
-    fun setGif(stream: InputStream): Int {
+    suspend fun setGif(stream: InputStream): Int = withContext(Dispatchers.IO) {
         var id = gifStorage.generateId()
         val result = loadGifStream(stream, id, cachingStrategy.num)
+
         stream.close()
 
-        id =  if (result > 0) {
+        id = if (result > 0) {
             id
         } else {
             INVALID_ID
         }
+
         if (cachingStrategy == CachingStrategy.PRE_CACHE) {
             cacheGif(id)
         }
 
-        return id
+        id
     }
 
     /**

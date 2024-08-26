@@ -41,7 +41,7 @@ class NsGifAndroid private constructor() {
      * @param data The byte array containing the GIF data.
      * @return The ID of the loaded GIF.
      */
-    fun setGif(data: ByteArray) = nsGifLib.setGif(data)
+    suspend fun setGif(data: ByteArray) = nsGifLib.setGif(data)
 
     /**
      * Loads a GIF from a file path into memory.
@@ -49,7 +49,7 @@ class NsGifAndroid private constructor() {
      * @param filePath The file path to the GIF.
      * @return The ID of the loaded GIF.
      */
-    fun setGif(filePath: String) = nsGifLib.setGif(filePath)
+    suspend fun setGif(filePath: String) = nsGifLib.setGif(filePath)
 
     /**
      * Loads a GIF from an input stream into memory.
@@ -57,7 +57,7 @@ class NsGifAndroid private constructor() {
      * @param stream The input stream containing the GIF data.
      * @return The ID of the loaded GIF.
      */
-    fun setGif(stream: InputStream) = nsGifLib.setGif(stream)
+    suspend fun setGif(stream: InputStream) = nsGifLib.setGif(stream)
 
     /**
      * Loads a GIF from an Android asset using its name.
@@ -66,7 +66,7 @@ class NsGifAndroid private constructor() {
      * @param name The name of the asset (GIF file).
      * @return The ID of the loaded GIF.
      */
-    fun setGif(asset: AssetManager, name: String): Int {
+    suspend fun setGif(asset: AssetManager, name: String): Int {
         return setGif(asset.open(name))
     }
 
@@ -77,7 +77,7 @@ class NsGifAndroid private constructor() {
      * @param id The resource ID of the GIF.
      * @return The ID of the loaded GIF.
      */
-    fun setGif(resource: Context, id: Int): Int {
+    suspend fun setGif(resource: Context, id: Int): Int {
         return setGif(resource.resources.openRawResource(id))
     }
 
@@ -132,8 +132,8 @@ class NsGifAndroid private constructor() {
      * @return A [Bitmap] object representing the current frame of the NSGIF.
      */
     fun getGifFrameBitmap(id: Int): Bitmap {
-        val width = getGifWidth(id)
-        val height = getGifHeight(id)
+        val width = getGifWidth(id).coerceAtLeast(1)
+        val height = getGifHeight(id).coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
         copyToBitmap(width, height, bitmap, id)
@@ -232,7 +232,7 @@ class NsGifAndroid private constructor() {
     }
 
     private fun Bitmap.ensureNotRecycled(action: (Bitmap) -> Unit) {
-        if (!isRecycled) {
+        if (!isRecycled && width > 0) {
             action(this)
         }
     }

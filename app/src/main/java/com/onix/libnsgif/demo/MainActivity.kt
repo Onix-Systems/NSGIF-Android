@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // TODO: can be moved to starting point of the app
-        NsGifAndroid.initialize(CachingStrategy.PRE_CACHE)
+        NsGifAndroid.initialize(CachingStrategy.WHEN_DECODED)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

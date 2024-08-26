@@ -131,7 +131,8 @@ Java_com_libnsgif_NsGifLib_loadGifStream(JNIEnv *env, jobject obj, jobject input
         return -1;
     }
 
-    jbyteArray byteArray = env->NewByteArray(1024);
+    //TODO experimental setting, should be decided which buffer size to use
+    jbyteArray byteArray = env->NewByteArray(1024 * 128);
 
     if (byteArray == nullptr) {
         return -1;
